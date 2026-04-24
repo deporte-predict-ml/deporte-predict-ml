@@ -2,16 +2,15 @@ name: Run Sports Prediction
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Se ejecuta automáticamente cada medianoche
-  workflow_dispatch:      # Permite ejecutarlo manualmente con un botón en la pestaña Actions
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write         # Da permiso explícito para que el bot guarde archivos
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -22,12 +21,10 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        run: |
-          pip install pandas requests
+        run: pip install pandas requests
 
       - name: Run Prediction
         env:
-          # Aquí es donde se conecta el Secret con el script de Python
           FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
         run: python predict.py
 
@@ -35,7 +32,12 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@://github.com"
           git config --local user.name "github-actions[bot]"
-          git add predictions.json
-          # Solo hace commit si el archivo cambió, para evitar errores
-          git commit -m "Update predictions: $(date)" || echo "No changes to commit"
-          git push
+          # Agregamos solo si el archivo existe para evitar el error 'fatal'
+          if [ -f "predictions.json" ]; then
+            git add predictions.json
+            git commit -m "Update predictions: $(date)" || echo "No changes to commit"
+            git push
+          else
+            echo "Error: predictions.json no se encontró."
+            exit 1
+          fi
